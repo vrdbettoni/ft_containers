@@ -5,156 +5,121 @@
 #include "list_node.hpp"
 
 namespace ft {
-// Base Iterator
-template <typename T>
+
+template <bool flag, class is_true, class is_false>
+struct choose;
+
+template <class is_true, class is_false>
+struct choose<true, is_true, is_false>
+{
+    typedef is_true type;
+};
+
+template <class is_true, class is_false>
+struct choose<false, is_true, is_false>
+{
+    typedef is_false type;
+};
+
+template <class T, bool is_const>
 class ListIterator
 {
     public:
-        typedef ListIterator<T> iterator;
-        typedef T value_type;
         typedef std::ptrdiff_t difference_type;
-        typedef T* pointer;
-        typedef T& reference;
         typedef std::bidirectional_iterator_tag iterator_category;
-        Node<T> *_actual;
+        typedef typename choose<is_const, const T*, T*>::type pointer;
+        typedef typename choose<is_const, const T&, T&>::type reference;
+
+    private:
+        typedef ListIterator<T, is_const> self_type;
+        typedef typename choose<is_const, const Node<T>*, Node<T>*>::type node_pointer;
+    
+    protected:
+        Node<T>* _node;
 
     public:
 // Canonical Form
-        ListIterator(Node<T>* actual = NULL) : _actual(actual) {}
-        ListIterator(ListIterator const &other) {*this = other;}
+        ListIterator(Node<T>* node = NULL) : _node(node) {}
+        ListIterator(const ListIterator<T, false> &other) : _node(other.getNode()) {}
+        ListIterator& operator=(const self_type &other){
+            if (this != &other)
+                _node = other.getNode();
+            return *this;
+        }
         ~ListIterator() {}
 
-        ListIterator& operator=(ListIterator const &other){
-            if (this != &other)
-                _actual = other._actual;;
-            return (*this);
-        }
+//Operators
+        reference operator*() { return _node->content();}
+        pointer   operator->() { return &_node->content();}
 
-// Incrementation and Decrementation
-        iterator    operator++(int) {
-            iterator tmp(*this);
-            _actual = _actual->next();
-            return tmp;
-        }
-        iterator&   operator++(){
-            _actual = _actual->next();
+        self_type& operator++(){
+            _node = _node->next();
             return *this;
         }
-        iterator    operator--(int) {
-            iterator tmp(*this);
-            _actual = _actual->previous();
+        self_type operator++(int){
+            self_type tmp(*this);
+            _node = _node->next();
             return tmp;
         }
-        iterator    operator--() {
-            _actual = _actual->previous();
-            return _actual;
+        self_type& operator--(){
+            _node = _node->previous();
+            return *this;
+        }
+        self_type operator--(int){
+            self_type tmp(*this);
+            _node = _node->previous();
+            return tmp;
         }
 
-// Deference
-        reference   operator*() { return _actual->content(); }
-        pointer     operator->() { return &(_actual->content()); }
-
-// Compare
-        bool        operator==(const iterator &rhs) const {
-            return (this->_actual == rhs._actual);
+        bool operator==(const self_type &lhs){
+            return this->_node == lhs._node;
         }
-        bool        operator!=(const iterator &rhs) const {
-            return (this->_actual != rhs._actual);
+        bool operator!=(const self_type &lhs){
+            return !(*this == lhs);
         }
 
-        Node<T>* getcNode() const { return (_actual); }
+//Getters
+        node_pointer getNode() const {
+            return _node;
+        }
 };
 
-// Const Iterator
-template<typename T>
-class ConstListIterator : public ListIterator<T>
+template<class T, bool is_const>
+class ReverseListIterator : public ListIterator<T, is_const>
 {
-
-    public:
-        typedef const T* const_pointer;
-        typedef const T& const_reference;
-        typedef Node<T>* node;
     
     public:
-        ConstListIterator(node newNode = NULL) { this->_actual = newNode; }    
-        ConstListIterator(const ListIterator<T>& it){ this->_actual = it.getcNode(); }
-        ConstListIterator(ConstListIterator<T> &other){ *this = other; }
-        ConstListIterator& operator=(ConstListIterator<T> const &other){
+        typedef ReverseListIterator<T, is_const> self_type;
+
+    public:
+        ReverseListIterator(Node<T>* node = NULL) {this->_node = node;}
+        ReverseListIterator(const ReverseListIterator<T, false> &other) {this->_node = other.getNode();}
+        ReverseListIterator& operator=(const self_type &other){
             if (this != &other)
-                this->_actual = other._actual;
-            return (*this);
+                this->_node = other.getNode();
+            return *this;        
         }
-        ~ConstListIterator() {}
-    
-        const_reference operator*() const{
-            return (this->_actual->ccontent());
-        }
-        const_pointer   operator->() const{
-            return &(this->_actual->ccontent());
-        }
-};
-
-//Reverse Iterator
-template <typename T>
-class ReverseListIterator : public ListIterator<T>
-{
-    typedef ReverseListIterator<T> reverse;
-
-    public:
-        ReverseListIterator(Node<T>* actual = NULL) { this->_actual = actual; }
-        ReverseListIterator(ReverseListIterator const &other) {*this = other;}
         ~ReverseListIterator() {}
-
-        reverse& operator=(ReverseListIterator const &other) {
-            if (this != &other)
-                this->_actual = other._actual;
-            return (*this);
-        }
-
-        reverse    operator++(int) {
-            reverse tmp(*this);
-            this->_actual = this->_actual->previous();
-            return tmp;
-        }
-        reverse&   operator++(){
-            this->_actual = this->_actual->previous();
+    
+        self_type& operator++(){
+            this->_node = this->_node->previous();
             return *this;
         }
-        reverse    operator--(int) {
-            reverse tmp(*this);
-            this->_actual = this->_actual->next();
+        self_type operator++(int){
+            self_type tmp(*this);
+            this->_node = this->_node->previous();
             return tmp;
         }
-        reverse   operator--() {
-            this->_actual = this->_actual->next();
-            return this->_actual;
+        self_type& operator--(){
+            this->_node = this->_node->next();
+            return *this;
         }
-};
-
-template<typename T>
-class ConstReverseListIterator : public ReverseListIterator<T>
-{
-    typedef ConstReverseListIterator<T> const_reverse;
-    typedef const T* const_pointer;
-    typedef const T& const_reference;
-
-    public:
-        ConstReverseListIterator(Node<T>* actual = NULL) { this->_actual = actual;}
-        ConstReverseListIterator(const ListIterator<T>& it){ this->_actual = it.getcNode(); }        
-        ConstReverseListIterator(ConstReverseListIterator const &other) {*this = other;}
-        ~ConstReverseListIterator() {}
-
-        const_reverse& operator=(ConstReverseListIterator const &other){
-            if (this != &other)
-                this->_actual = other._actual;;
-            return (*this);
-        }
-        const_reference operator*() const{
-            return (this->_actual->ccontent());
-        }
-        const_pointer   operator->() const{
-            return &(this->_actual->ccontent());
+        self_type operator--(int){
+            self_type tmp(*this);
+            this->_node = this->_node->next();
+            return tmp;
         }
 };
 }
+
 #endif

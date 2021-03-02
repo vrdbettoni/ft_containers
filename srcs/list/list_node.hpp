@@ -29,7 +29,6 @@ class Node {
 
 // Getters
         T&        content() { return (_content); }
-        const T&  ccontent() const { return (_content); }
         Node *previous() { return (_previous); }
         Node *next() { return (_next); }
 

@@ -10,10 +10,10 @@ template <typename T>
 class list
 {
     public:
-        typedef ListIterator<T> iterator;
-        typedef ConstListIterator<T> const_iterator;
-        typedef ReverseListIterator<T> reverse_iterator;
-        typedef ConstReverseListIterator<T> const_reverse_iterator;
+        typedef ListIterator<T, false> iterator;
+        typedef ListIterator<T, true> const_iterator;
+        typedef ReverseListIterator<T, false> reverse_iterator;
+        typedef ReverseListIterator<T, true> const_reverse_iterator;
         typedef Node<T>* node_pointer;
  
     private:
@@ -54,14 +54,14 @@ class list
 // Iterators
         iterator begin() { return iterator(_head->next()); }
         iterator end() { return iterator(_tail); }
-        const_iterator cbegin() const { return const_iterator(_head->next()); }
-        const_iterator cend() const { return const_iterator(_tail); }
+        const_iterator begin() const { return const_iterator(_head->next()); }
+        const_iterator end() const { return const_iterator(_tail); }
         reverse_iterator rbegin() { return reverse_iterator(_tail->previous()); }
         reverse_iterator rend () { return reverse_iterator (_head); }
-        const_reverse_iterator crbegin() const { return const_reverse_iterator(_tail); }
-        const_reverse_iterator crend () const { return const_reverse_iterator (_head); }
+        const_reverse_iterator rbegin() const { return const_reverse_iterator(_tail->previous()); }
+        const_reverse_iterator rend () const { return const_reverse_iterator (_head); }
     
-// Add
+// Basic Insertion
         void push_back(T value){
             _size++;
             Node<T>* newOne = new Node<T>(value);
@@ -83,13 +83,23 @@ class list
                 del(_tail->previous());
         }
     
-        void erase(iterator position){
-            del(position._actual);
+        void clear(){
+            iterator start(_head->next());
+            iterator end(_tail);
+            erase(start, end);
         }
 
-        void erase(iterator first, iterator last){
+        iterator erase(iterator position){
+            iterator ret = position;
+            ret++;
+            del(position.getNode());
+            return ret;
+        }
+
+        iterator erase(iterator first, iterator last){
             while (first && first != last)
-                del(first._actual);
+                del(first.getNode());
+            return last;
         }
 
         void unique(void) {
@@ -127,7 +137,34 @@ class list
                 }
             }
         }
-    
+
+// Management
+        void splice(iterator position, list& x){
+            splice(position, x, x.begin(), x.end());
+        }
+        void splice(iterator position, list& x, iterator i){
+            iterator next(i);
+            splice(position, x, i, ++next);
+        }
+        void splice(iterator position, list &x, iterator first, iterator last){
+            first.getNode()->previous()->setNext(last.getNode());
+            position.getNode()->previous()->setNext(first.getNode());
+            position.getNode()->setPrevious(last.getNode()->previous());
+            position.getNode()->previous()->setNext(position.getNode());
+            for (; first != position; ++first){
+                ++_size;
+                --x._size;
+            }
+        }
+
+        void reverse (void)
+        {
+            if (!_size)
+                return ;
+            iterator pos = begin();
+            for (size_t i = 0; i < _size - 1; ++i)
+                splice(pos, *this, --end());
+        }
 // Informations
         size_t size(){ return _size; }
         bool empty(){ return (_size == 0);}

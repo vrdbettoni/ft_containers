@@ -14,50 +14,47 @@ bool same (int first, int second)
 int main()
 {
     list<int> test;
-    test.push_back(4);
-    test.push_back(1);
-    test.push_back(2);
-    test.push_back(4);
-    test.push_back(4);
-    test.push_back(3);
-    test.push_back(4);
-    test.push_back(5);
-    test.push_back(4);
-
+    for (int i = 0; i < 10; ++i){
+        test.push_back(0);
+        if (i%2)
+            test.push_back(0);
+    }
+    list<int> test1;
+    for (int i = 1; i < 7 ; i++)
+        test1.push_back(i);
     list<int>::iterator it = test.begin();
     list<int>::iterator end = test.end();
-    // list<int>::const_iterator cit = test.cbegin();
-    // list<int>::const_iterator cend = test.cend();
-    // list<int>::reverse_iterator rit = test.rbegin();
-    // list<int>::reverse_iterator rend = test.rend();
-    // list<int>::const_reverse_iterator crit = test.crbegin();
-    // list<int>::const_reverse_iterator crend = test.crend();
-    list<int>::iterator a;
+    list<int>::iterator a = test1.begin();
+    list<int>::iterator b = test1.end();
+    list<int>::iterator c = it;
+    c++;
+    a++;a++;
+    std::cout << "First:" << std::endl;
+    // test.splice(c, test1);
     for (; it != end; it++){
-        if (*it == 5)
-            a = it;
         std::cout << *it << " ";
+    }
+    a = test1.begin();
+    b = test1.end();
+    std::cout << "\nSecond: " << std::endl;
+    for (; a != b; a++)
+        std::cout << *a << " ";
+    std::cout << "\nReverse: " << std::endl;
+    test.reverse();
+    int i = 0;
+    for (it = test.begin(); it != end; it++){
+        i++;
+        if (i == 30){
+            std::cout << std::endl;
+            break;
+        }
+        std::cout <<*it << " ";
     }
     std::cout << std::endl;
-    test.unique();
-    // test.pop_front();
-    // test.pop_back();
-    it = test.begin();
-
-    test.erase(a);
-    for (; it != end; it++){
-        std::cout << *it << " ";
-    }
+    // test.unique();
     // std::cout << std::endl;
-    // for (; cit != cend; cit++){
-    //     std::cout << *cit << " ";
-    // }
-    // std::cout << std::endl;
-    // for (; rit != rend; rit++){
-    //     std::cout << *rit << " ";
-    // }
-    // std::cout << std::endl;
-    // for (; crit != crend; crit++){
-    //     std::cout << *crit << " ";
+    // it = test.begin();
+    // for (; it != end; it++){
+    //     std::cout << *it << " ";
     // }
 }

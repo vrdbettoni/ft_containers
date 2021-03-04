@@ -41,19 +41,20 @@ class Node {
         }
     
 // Auto management
-        void retirement(){
+        void retirement(bool del){
             if (_previous)
                 _previous->_next = _next;
             if (_next)
                 _next->_previous = _previous;
-            delete (this);
+            if (del)
+                delete (this);
         }
 
         void addBefore(Node *newNode) {
-            if (_previous)
-                _previous->_next = newNode;
             newNode->_previous = _previous;
             newNode->_next = this;
+            if (_previous)
+                _previous->_next = newNode;
             _previous = newNode;
         }
 

@@ -3,7 +3,10 @@
 
 # include "list_node.hpp"
 # include "list_iterator.hpp"
+# include "utils.hpp"
 # include <algorithm>
+# include <limits>
+# include <functional>
 
 namespace ft {
 template <typename T>
@@ -23,7 +26,7 @@ class list
 
         void del(Node<T> *toDel){
             _size--;
-            toDel->retirement();
+            toDel->retirement(true);
         }
     
     public:
@@ -42,13 +45,17 @@ class list
         }
 
         ~list(){
-            // _head = _head->next();
-            // for (; _head; _head = _head->next()){
-            //     delete (_head->previous());
-            //}
+            for (node_pointer tmp = _head; _head; tmp = _head){
+                _head = _head->next();
+                delete tmp;
+            }
         }
 
 // Other constructor
+        // template <class InputIterator>
+        // list(InputIterator first, InputIterator last){
+
+        // }
 
 // Member function
 // Iterators
@@ -62,15 +69,29 @@ class list
         const_reverse_iterator rend () const { return const_reverse_iterator (_head); }
     
 // Basic Insertion
-        void push_back(T value){
+        void push_back(const T &value){
             _size++;
             Node<T>* newOne = new Node<T>(value);
             _tail->addBefore(newOne);
         }
-        void push_front(T value){
+        void push_front(const T &value){
             _size++;
             Node<T>* newOne = new Node<T>(value);
             _head->addAfter(newOne);
+        }
+
+        void assign(size_t n, const T& val){
+            clear();
+            for (size_t i = 0; i < n; ++i)
+                push_back(val);
+        }
+
+        template <class InputIterator>
+        void assign(InputIterator first, InputIterator last,
+                typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0){
+            clear();
+            for (; first != last; ++first)
+                push_back(*first);
         }
 
 // Remove
@@ -97,7 +118,7 @@ class list
         }
 
         iterator erase(iterator first, iterator last){
-            while (first && first != last)
+            while (first != last)
                 del(first.getNode());
             return last;
         }
@@ -147,24 +168,90 @@ class list
             splice(position, x, i, ++next);
         }
         void splice(iterator position, list &x, iterator first, iterator last){
-            first.getNode()->previous()->setNext(last.getNode());
+            if (first == last)
+                return;
+            iterator tmp(first.getNode()->previous());
             position.getNode()->previous()->setNext(first.getNode());
+            first.getNode()->setPrevious(position.getNode()->previous());
             position.getNode()->setPrevious(last.getNode()->previous());
             position.getNode()->previous()->setNext(position.getNode());
+            tmp.getNode()->setNext(last.getNode());
+            last.getNode()->setPrevious(tmp.getNode());
             for (; first != position; ++first){
                 ++_size;
                 --x._size;
             }
         }
 
-        void reverse (void)
-        {
-            if (!_size)
-                return ;
+        void reverse (void){
             iterator pos = begin();
             for (size_t i = 0; i < _size - 1; ++i)
-                splice(pos, *this, --end());
+                splice(pos, *this, --end());            
         }
+
+        void resize(size_t n, T val = T()){
+            while (n > _size)
+                    push_back(val);
+            while (n < _size)
+                pop_back();
+        }
+
+        void swap(list &x){
+            ft::swap(_size, x._size);
+            ft::swap(_head, x._head);
+            ft::swap(_tail, x._tail);
+        }
+
+        void merge(list &x){
+            merge(x, std::less<T>());
+        }
+
+        template <class Compare>
+        void merge(list &x, Compare comp){
+            if (this == &x)
+                return;
+            for (iterator it = begin(); it != end() && x._size; ++it){
+                node_pointer tmp = x.begin().getNode();
+                if ((comp)(tmp->content(), *it)){
+                    tmp->retirement(false);
+                    it.getNode()->addBefore(tmp);
+                    ++_size;
+                    --x._size;
+                    --it;
+                }
+            }
+            if (x._size)
+                splice(end(), x);
+        }
+
+        void sort(){
+            sort(std::less<T>());
+        }
+
+        template <class Compare>
+        void sort(Compare comp){
+            if (_size < 2)
+                return;
+            list<T> right_part;
+            list<T> left_part;
+            iterator it = begin();
+            std::advance(it, _size / 2);
+            right_part.splice(right_part.end(), *this, it, end());
+            left_part.splice(left_part.end(), *this);
+            // std::cout << "right: ";
+            // for (iterator it = right_part.begin(); it != right_part.end(); ++it)
+            //     std::cout << *it;
+            // std::cout << "\nleft: ";
+            // for (iterator it = left_part.begin(); it != left_part.end(); ++it)
+            //     std::cout << *it;
+            // std::cout << std::endl;;
+            
+            right_part.sort(comp);
+            left_part.sort(comp);
+            left_part.merge(right_part);
+            merge(left_part, comp);
+        }
+
 // Informations
         size_t size(){ return _size; }
         bool empty(){ return (_size == 0);}

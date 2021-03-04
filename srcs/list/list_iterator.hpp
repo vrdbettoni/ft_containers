@@ -3,24 +3,9 @@
 
 #include <iterator>
 #include "list_node.hpp"
+#include "utils.hpp"
 
 namespace ft {
-
-template <bool flag, class is_true, class is_false>
-struct choose;
-
-template <class is_true, class is_false>
-struct choose<true, is_true, is_false>
-{
-    typedef is_true type;
-};
-
-template <class is_true, class is_false>
-struct choose<false, is_true, is_false>
-{
-    typedef is_false type;
-};
-
 template <class T, bool is_const>
 class ListIterator
 {
@@ -29,7 +14,8 @@ class ListIterator
         typedef std::bidirectional_iterator_tag iterator_category;
         typedef typename choose<is_const, const T*, T*>::type pointer;
         typedef typename choose<is_const, const T&, T&>::type reference;
-
+        typedef T value_type;
+    
     private:
         typedef ListIterator<T, is_const> self_type;
         typedef typename choose<is_const, const Node<T>*, Node<T>*>::type node_pointer;

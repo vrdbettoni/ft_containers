@@ -13,6 +13,7 @@ template <typename T>
 class list
 {
     public:
+        typedef T value_type;
         typedef ListIterator<T, false> iterator;
         typedef ListIterator<T, true> const_iterator;
         typedef ReverseListIterator<T, false> reverse_iterator;
@@ -34,16 +35,14 @@ class list
         list() : _head(new Node<T>), _tail(new Node<T>), _size(0){
             _head->addAfter(_tail);
         }
-        list(list const &other){*this = other;}
+        list(list const &other): _head(new Node<T>), _tail(new Node<T>), _size(0){
+            *this = other;
+        }
         list& operator=(list const &other){
-            if (this != &other){
-                _head = other._head;
-                _tail = other._tail;
-                _size = other._size;
-            }
+            if (this != &other)
+                assign(other.begin(), other.end());
             return (*this);
         }
-
         ~list(){
             for (node_pointer tmp = _head; _head; tmp = _head){
                 _head = _head->next();
@@ -52,10 +51,18 @@ class list
         }
 
 // Other constructor
-        // template <class InputIterator>
-        // list(InputIterator first, InputIterator last){
+        template <class InputIterator>
+        list(InputIterator first, InputIterator last,
+            typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
+            : _head(new Node<T>), _tail(new Node<T>), _size(0)
+        {
+            _head->addAfter(_tail);
+            assign(first, last);
+        }
 
-        // }
+        list(size_t n, const T& val = T()) : _head(new Node<T>), _tail(new Node<T>), _size(0){
+            assign(n, val);
+        }
 
 // Member function
 // Iterators
@@ -80,6 +87,24 @@ class list
             _head->addAfter(newOne);
         }
 
+        iterator insert(iterator position, const T& val){
+            position.getNode()->addBefore(new Node<T>(val));
+            return --position;
+        }
+
+        void insert(iterator position, size_t n, const T& val){
+            while(n--)
+                position.getNode()->addBefore(new Node<T>(val));
+        }
+
+        template <class InputIterator>
+        void insert (iterator position, InputIterator first, InputIterator last,
+                typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
+        {
+            while (first++ != last)
+            position.getNode()->addBefore(new Node<T>(*first));
+        }
+        
         void assign(size_t n, const T& val){
             clear();
             for (size_t i = 0; i < n; ++i)
@@ -237,15 +262,7 @@ class list
             iterator it = begin();
             std::advance(it, _size / 2);
             right_part.splice(right_part.end(), *this, it, end());
-            left_part.splice(left_part.end(), *this);
-            // std::cout << "right: ";
-            // for (iterator it = right_part.begin(); it != right_part.end(); ++it)
-            //     std::cout << *it;
-            // std::cout << "\nleft: ";
-            // for (iterator it = left_part.begin(); it != left_part.end(); ++it)
-            //     std::cout << *it;
-            // std::cout << std::endl;;
-            
+            left_part.splice(left_part.end(), *this);   
             right_part.sort(comp);
             left_part.sort(comp);
             left_part.merge(right_part);
@@ -254,6 +271,7 @@ class list
 
 // Informations
         size_t size(){ return _size; }
+        size_t max_size(){ return 10000000;}
         bool empty(){ return (_size == 0);}
         T& front() { return(_head->next()->content()); }
         T& back() { return(_tail->previous()->content()); }

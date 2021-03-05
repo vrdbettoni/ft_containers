@@ -3,7 +3,7 @@
 
 # include "list_node.hpp"
 # include "list_iterator.hpp"
-# include "utils.hpp"
+# include "../utils.hpp"
 # include <algorithm>
 # include <limits>
 # include <functional>
@@ -14,10 +14,14 @@ class list
 {
     public:
         typedef T value_type;
+        typedef std::ptrdiff_t difference_type;
         typedef ListIterator<T, false> iterator;
         typedef ListIterator<T, true> const_iterator;
         typedef ReverseListIterator<T, false> reverse_iterator;
         typedef ReverseListIterator<T, true> const_reverse_iterator;
+        typedef size_t size_type;
+    
+    private:
         typedef Node<T>* node_pointer;
  
     private:
@@ -35,10 +39,11 @@ class list
         list() : _head(new Node<T>), _tail(new Node<T>), _size(0){
             _head->addAfter(_tail);
         }
-        list(list const &other): _head(new Node<T>), _tail(new Node<T>), _size(0){
+        list(const list &other): _head(new Node<T>), _tail(new Node<T>), _size(0){
+            _head->addAfter(_tail);
             *this = other;
         }
-        list& operator=(list const &other){
+        list& operator=(const list &other){
             if (this != &other)
                 assign(other.begin(), other.end());
             return (*this);
@@ -61,6 +66,7 @@ class list
         }
 
         list(size_t n, const T& val = T()) : _head(new Node<T>), _tail(new Node<T>), _size(0){
+            _head->addAfter(_tail);
             assign(n, val);
         }
 
@@ -88,11 +94,13 @@ class list
         }
 
         iterator insert(iterator position, const T& val){
+            ++_size;
             position.getNode()->addBefore(new Node<T>(val));
             return --position;
         }
 
         void insert(iterator position, size_t n, const T& val){
+            _size += n;
             while(n--)
                 position.getNode()->addBefore(new Node<T>(val));
         }
@@ -101,8 +109,10 @@ class list
         void insert (iterator position, InputIterator first, InputIterator last,
                 typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
         {
-            while (first++ != last)
-            position.getNode()->addBefore(new Node<T>(*first));
+            for (; first != last; ++first){
+                position.getNode()->addBefore(new Node<T>(*first));
+                ++_size;
+            }
         }
         
         void assign(size_t n, const T& val){
@@ -144,7 +154,7 @@ class list
 
         iterator erase(iterator first, iterator last){
             while (first != last)
-                del(first.getNode());
+                first = erase(first);
             return last;
         }
 
@@ -166,21 +176,21 @@ class list
         }
 
         void remove(const T& val){
-            for (node_pointer tmp = _head; tmp->next() != _tail; tmp = tmp->next()){
-                if (tmp->next()->content() == val){
+            for (node_pointer tmp = _head; tmp->next() != _tail;){
+                if (tmp->next()->content() == val)
                     del(tmp->next());
-                    tmp = tmp->previous();
-                }
+                else
+                    tmp = tmp->next();
             }
         }
 
         template<typename Predicate>
         void remove_if(Predicate pred){
-            for (node_pointer tmp = _head; tmp->next() != _tail; tmp = tmp->next()){
-                if ((*pred)(tmp->next()->content())){
+            for (node_pointer tmp = _head; tmp->next() != _tail;){
+                if ((*pred)(tmp->next()->content()))
                     del(tmp->next());
-                    tmp = tmp->previous();
-                }
+                else
+                    tmp =tmp->next();
             }
         }
 
@@ -265,19 +275,68 @@ class list
             left_part.splice(left_part.end(), *this);   
             right_part.sort(comp);
             left_part.sort(comp);
-            left_part.merge(right_part);
+            left_part.merge(right_part, comp);
             merge(left_part, comp);
         }
 
 // Informations
-        size_t size(){ return _size; }
-        size_t max_size(){ return 10000000;}
+        size_t size() const { return _size; }
+	    size_t max_size() const {
+		    return (min((size_type) std::numeric_limits<difference_type>::max(), (std::numeric_limits<size_t>::max() / (sizeof(Node<T>) - sizeof(T*)))));
+	    }
         bool empty(){ return (_size == 0);}
         T& front() { return(_head->next()->content()); }
         T& back() { return(_tail->previous()->content()); }
         const T& front() const { return(_head->next()->content()); }
         const T& back() const { return (_tail->previous()->content()); }
 };
+
+// Operators Comp
+template<typename value_type>
+bool operator==(const list<value_type> &lhs, const list<value_type> &rhs){
+    if (lhs.size() != rhs.size())
+        return false;
+    typename ft::list<value_type>::const_iterator rit = rhs.begin();
+    for (typename ft::list<value_type>::const_iterator lit = lhs.begin(); lit != lhs.end(); ++lit){
+        if (*lit != *rit)
+            return false;
+        ++rit;
+    }
+    return true;
+}
+template<typename value_type>
+bool operator!=(const list<value_type> &lhs, const list<value_type> &rhs){
+    return !(lhs == rhs);        
+}
+template<typename value_type>
+bool operator<(const list<value_type> &lhs, const list<value_type> &rhs){
+    typename ft::list<value_type>::const_iterator rit = rhs.begin();
+    for (typename ft::list<value_type>::const_iterator lit = lhs.begin(); rit != rhs.end() && lit != lhs.end(); ++lit){
+        if (*lit < *rit)
+            return true;
+        if (*lit > *rit)
+        return false;
+        ++rit;
+    }   
+    return (lhs.size() >= rhs.size() ? false : true);
+}
+template<typename value_type>
+bool operator>(const list<value_type> &lhs, const list<value_type> &rhs){
+    return rhs < lhs;
+}
+template<typename value_type>
+bool operator<=(const list<value_type> &lhs, const list<value_type> &rhs){
+    return !(rhs < lhs);
+}
+template<typename value_type>
+bool operator>=(const list<value_type> &lhs, const list<value_type> &rhs){
+    return !(lhs < rhs);
 }
 
+template<typename value_type>
+void swap(ft::list<value_type> &lhs, ft::list<value_type> &rhs){
+	lhs.swap(rhs);
+}
+
+}
 #endif

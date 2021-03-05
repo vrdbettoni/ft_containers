@@ -61,8 +61,8 @@ class Node {
         void addAfter(Node *newNode) {
             newNode->_next = _next;
             newNode->_previous = this;
-            if (newNode->_next)
-                newNode->_next->_previous = _next;
+            if (_next)
+                _next->_previous = newNode;
             _next = newNode;
         }
 };

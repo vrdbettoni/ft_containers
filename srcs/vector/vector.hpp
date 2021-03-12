@@ -8,6 +8,7 @@
 # include <limits>
 # include <cstring>
 # include <iostream>
+# include <ostream>
 
 namespace ft{
 template <typename T>
@@ -35,34 +36,25 @@ class vector
         explicit vector() : _data(NULL), _size(0), _capacity(0) {}
         
         explicit vector(size_type n, const value_type &val = value_type()) : _data(NULL), _size(0), _capacity(0){
-            _capacity = std::ceil(n * 1.5f);
-            _data = new value_type [_capacity];
+           reserve(n);
             for (; _size < n; ++_size)
                 _data[_size] = val;
         }
     
         template <class InputIterator>
-        vector(InputIterator first, InputIterator last){
-            _capacity = std::ceil(std::distance(first, last) * 1.5f);
-            _data = new value_type [_capacity];
-            for (; first != last; ++first)
-                _data[_size++] = first;
+        vector(InputIterator first, InputIterator last,
+            typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
+                : _size(0), _capacity(0), _data(0) {
+            assign(first, last);
         }
 
-        // vector(const vector &other) :  _data(NULL), _size(0), _capacity(0){
-        //     reserve(other._capacity);
-        //     for (size_t count = 0; count < other._size; ++count)
-        //         _data[count] = other._data[count];
-        // }
-        vector(vector const &other) : _size(other._size), _capacity(other._capacity){
-             _data = new value_type [_capacity];
-             std::memcpy(_data, other._data, _size * sizeof(value_type));
+        vector(vector const &other) : _data(NULL), _size(0), _capacity(0){
+            assign(other.begin(), other.end());
          }
 
         ~vector(){
-            // while (--_size)
-            //     _data[_size].T::~T();
-            // delete[] _data;
+            clear();
+            delete[] _data;
         }
 
 // Iterators
@@ -100,6 +92,7 @@ class vector
         }
 
         void reserve(size_type n){
+            n == 0 ? n++ : 0;
             if (n <= _capacity)
                 return ;
             pointer newData = new value_type [n];
@@ -116,32 +109,38 @@ class vector
 	    }
 
         reference at(size_type n){
-            return &_data[n];
+
+            if (n >= _size)
+                throw std::out_of_range("don't exist");
+            return (_data[n]);
         }
 
         const_reference at(size_type n) const {
-            return &_data[n];
+            if (n >= _size)
+                throw std::out_of_range("don't exist");
+            return (_data[n]);
         }
 
         reference front(){
-            return &_data[0];
+            return _data[0];
         }
 
         const_reference front() const {
-            return &_data[0];
+            return _data[0];
         }
         
         reference back(){
-            return &_data[_size - 1];
+            return _data[_size - 1];
         }
 
         const_reference back() const {
-            return &_data[_size - 1];
+            return _data[_size - 1];
         }
 
 // Modifiers
         void assign(size_type n, const value_type& val){
             clear();
+            reserve(n);
             while (_size < n)
                 push_back(val);
         }
@@ -151,6 +150,7 @@ class vector
             typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
         {
             clear();
+            reserve(last - first);
             for (; first != last; ++first)
                 push_back(*first);
         }
@@ -163,51 +163,122 @@ class vector
         }
 
         void pop_back(){
-            _data[_size-- - 1].T::T();
+            _data[_size-- - 1].T::~T();
         }
 
         iterator insert(iterator position, const value_type &val){
+            difference_type p = position - begin();
             insert(position, 1, val);
-            return position;
+            return begin() + p;
         }
 
         void insert (iterator position, size_type n, const value_type &val){
             vector<value_type> tmp(position, this->end());
+            difference_type p = position - begin();
             reserve(_size + n);
-            for(size_t count = n; count--; ++position)
-                position.getActual() = val;
-            for (size_t count = 0; count < tmp._size; ++count)
-                _data[_size++] = tmp._data[count];
-            delete[] tmp;
+            iterator pos = begin() + p;
+            for(size_t count = 0; count < n; ++count, ++pos){
+                pos.getActual()->T::~T();
+                *pos = val;
+            }
+            for (size_t count = 0; count < tmp._size; ++pos){
+                pos.getActual()->T::~T();
+                *pos =  tmp._data[count++];
+            }
+            _size += n;
         }
 
         template <class InputIterator>
-        void insert (iterator position, InputIterator first, InputIterator last){
+        void insert (iterator position, InputIterator first, InputIterator last, 
+                    typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0){
             vector<value_type> tmp(position, this->end());
-            reserve(_size + std::distance(first, last));
-            for(; first != last; ++first)
-                position++.getActual() = first;
-            for (size_t count = 0; count < tmp._size; ++count)
-                _data[_size++] = tmp._data[count];
-            delete[] tmp;
+            difference_type p = position - begin();
+            reserve(_size + last - first);
+            iterator pos = begin() + p;
+            for(; first != last; ++first, ++pos){
+                pos.getActual()->T::~T();
+                *pos = *first;
+                ++_size;
+            }
+            for (size_t count = 0; count < tmp._size; ++pos){
+                pos.getActual()->T::~T();
+                *pos =  tmp._data[count++];
+            }
         }  
 
         iterator erase(iterator position){
-            pointer tmp = position.getActual();
-            // tmp->T::~T();
-            std::cout << "Size: " << _size << " Distance: "<< std::distance(position, this->end()) << std::endl;
-            std::memmove(tmp, (tmp + 1), std::distance(position, this->end()));
-            // for (size_t count = std::distance(position, this->end()); count--; ++tmp)
-                // tmp = tmp + 1;
-            --_size;   
-            return position;
+            return erase(position, position + 1);
+        }
+ 
+        iterator erase(iterator first, iterator last){
+            size_t count =  last - first;
+            pointer tmp = first.getActual();
+            for (; first != last; ++first)
+                first.getActual()->T::~T();
+            std::memmove(tmp, last.getActual(), (this->end() - last) * sizeof(T));
+            _size -= count;
+            return tmp;
+        }
+
+        void swap(vector& x){
+            ft::swap(_capacity, x._capacity);
+            ft::swap(_data, x._data);
+            ft::swap(_size, x._size);
         }
 
         void clear(){
-            for (; _size; --_size)
-                _data[_size - 1].T::~T();
+            for (size_t i = 0;  i < _size; ++i)
+                _data[i].T::~T();
+            _size = 0;
         }
 
 };
+
+// Operators Comp
+template<typename value_type>
+bool operator==(const vector<value_type> &lhs, const vector<value_type> &rhs){
+    if (lhs.size() != rhs.size())
+        return false;
+    typename ft::vector<value_type>::const_iterator rit = rhs.begin();
+    for (typename ft::vector<value_type>::const_iterator lit = lhs.begin(); lit != lhs.end(); ++lit){
+        if (*lit != *rit)
+            return false;
+        ++rit;
+    }
+    return true;
+}
+template<typename value_type>
+bool operator!=(const vector<value_type> &lhs, const vector<value_type> &rhs){
+    return !(lhs == rhs);        
+}
+template<typename value_type>
+bool operator<(const vector<value_type> &lhs, const vector<value_type> &rhs){
+    typename ft::vector<value_type>::const_iterator rit = rhs.begin();
+    for (typename ft::vector<value_type>::const_iterator lit = lhs.begin(); rit != rhs.end() && lit != lhs.end(); ++lit, ++rit){
+        if (*lit < *rit)
+            return true;
+        if (*lit > *rit)
+            return false;
+    }   
+    return (lhs.size() >= rhs.size() ? false : true);
+}
+template<typename value_type>
+bool operator>(const vector<value_type> &lhs, const vector<value_type> &rhs){
+    return rhs < lhs;
+}
+template<typename value_type>
+bool operator<=(const vector<value_type> &lhs, const vector<value_type> &rhs){
+    return !(rhs < lhs);
+}
+template<typename value_type>
+bool operator>=(const vector<value_type> &lhs, const vector<value_type> &rhs){
+    return !(lhs < rhs);
+}
+
+template<typename value_type>
+void swap(ft::vector<value_type> &lhs, ft::vector<value_type> &rhs){
+	lhs.swap(rhs);
+}
+
 }
 #endif

@@ -57,11 +57,11 @@ class ListIterator
             return tmp;
         }
 
-        bool operator==(const self_type &lhs){
-            return this->_node == lhs._node;
+        friend bool operator==(const self_type &lhs, const self_type &rhs){
+            return lhs._node  == rhs._node;
         }
-        bool operator!=(const self_type &lhs){
-            return !(*this == lhs);
+        friend bool operator!=(const self_type &lhs, const self_type &rhs){
+            return lhs._node  != rhs._node;
         }
 
 //Getters

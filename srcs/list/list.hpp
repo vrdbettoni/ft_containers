@@ -31,12 +31,13 @@ class list
 
         void del(Node<T> *toDel){
             _size--;
-            toDel->retirement(true);
+            toDel->retirement();
+            delete toDel;
         }
     
     public:
 // Canonical Form
-        list() : _head(new Node<T>), _tail(new Node<T>), _size(0){
+        list() : _head(new Node<T>()), _tail(new Node<T>()), _size(0){
             _head->addAfter(_tail);
         }
         list(const list &other): _head(new Node<T>), _tail(new Node<T>), _size(0){
@@ -49,10 +50,10 @@ class list
             return (*this);
         }
         ~list(){
-            for (node_pointer tmp = _head; _head; tmp = _head){
-                _head = _head->next();
-                delete tmp;
-            }
+            if (_size != 0)
+                clear();
+            delete _head;
+            delete _tail;
         }
 
 // Other constructor
@@ -140,9 +141,7 @@ class list
         }
     
         void clear(){
-            iterator start(_head->next());
-            iterator end(_tail);
-            erase(start, end);
+            erase(begin(), end());
         }
 
         iterator erase(iterator position){
@@ -248,7 +247,7 @@ class list
             for (iterator it = begin(); it != end() && x._size; ++it){
                 node_pointer tmp = x.begin().getNode();
                 if ((comp)(tmp->content(), *it)){
-                    tmp->retirement(false);
+                    tmp->retirement();
                     it.getNode()->addBefore(tmp);
                     ++_size;
                     --x._size;

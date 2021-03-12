@@ -74,16 +74,25 @@ class VectorIterator
         }
 
         self_type operator-=(difference_type n){
-            return *this - n; 
+            _actual -= n;
+            return *this; 
         }
 
         self_type operator+=(difference_type n){
-            return *this + n;
+            _actual += n;
+            return *this;
         }
 
 //Getters
         pointer getActual() const {
             return _actual;
+        }
+
+        friend bool operator==(const self_type &lhs, const self_type &rhs){
+            return lhs._actual  == rhs._actual;
+        }
+        friend bool operator!=(const self_type &lhs, const self_type &rhs){
+            return lhs._actual  != rhs._actual;
         }
 };
 
@@ -145,8 +154,8 @@ class ReverseVectorIterator : public VectorIterator<T, is_const>
         }
 };
 
-template <typename pointer>
-size_t  operator- (const pointer& lhs, const pointer& rhs) {return &lhs - &rhs;}
+template <typename iterator>
+size_t  operator- (const iterator& lhs, const iterator& rhs) {return lhs.getActual() - rhs.getActual();}
 }
 
 #endif

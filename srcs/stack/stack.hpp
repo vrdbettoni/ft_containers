@@ -10,14 +10,15 @@ class stack
     public:
         typedef T value_type;
         typedef size_t size_type;
-        typedef Container container_type  ;
+        typedef Container container_type;
  
     protected:
         container_type c;
  
     public:
         explicit stack(const container_type &cntr = container_type()) : c(cntr) {}
- 
+        ~stack() {}
+
         bool              empty() const     { return c.empty(); }
         size_type         size()  const     { return c.size(); }
 
@@ -36,4 +37,5 @@ class stack
 
 };
 }
+
 #endif

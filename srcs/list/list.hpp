@@ -304,15 +304,16 @@ class list
         }
 
 // Informations
-        size_type size() const { return _size; }
+        size_type size() const  { return _size; }
+        bool empty() const      { return (_size == 0);}
+        T& front()              { return(_head->next()->content()); }
+        T& back()               { return(_tail->previous()->content()); }
+        const T& front() const  { return(_head->next()->content()); }
+        const T& back() const   { return (_tail->previous()->content()); }
+
 	    size_type max_size() const {
 		    return (min((size_type) std::numeric_limits<difference_type>::max(), (std::numeric_limits<size_type>::max() / (sizeof(Node<T>) - sizeof(T*)))));
 	    }
-        bool empty(){ return (_size == 0);}
-        T& front() { return(_head->next()->content()); }
-        T& back() { return(_tail->previous()->content()); }
-        const T& front() const { return(_head->next()->content()); }
-        const T& back() const { return (_tail->previous()->content()); }
 };
 
 // Operators Comp

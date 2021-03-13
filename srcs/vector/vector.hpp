@@ -92,11 +92,11 @@ class vector
 		    return (min((size_type) std::numeric_limits<difference_type>::max(), (std::numeric_limits<size_t>::max() / sizeof(value_type))));
 	    }
 
-        size_type capacity() const{
+        size_type capacity() const {
             return _capacity;
         }
 
-        bool empty() const{
+        bool empty() const {
             return _size == 0;
         }
 

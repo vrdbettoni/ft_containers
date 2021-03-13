@@ -7,13 +7,19 @@
 # include <algorithm>
 # include <limits>
 # include <functional>
+# include <memory>
 
 namespace ft {
-template <typename T>
+template <typename T, class Alloc = std::allocator<T> >
 class list
 {
     public:
         typedef T value_type;
+        typedef Alloc allocator_type;
+        typedef typename allocator_type::reference reference;
+        typedef typename allocator_type::const_reference const_reference;
+        typedef typename allocator_type::pointer pointer;
+        typedef typename allocator_type::const_pointer const_pointer;
         typedef std::ptrdiff_t difference_type;
         typedef ListIterator<T, false> iterator;
         typedef ListIterator<T, true> const_iterator;
@@ -23,42 +29,42 @@ class list
     
     private:
         typedef Node<T>* node_pointer;
- 
+        typedef typename Alloc::template rebind<Node<T> >::other node_allocator;
+    
     private:
-        Node<T> *_head;
-        Node<T> *_tail;
-        size_t  _size;
+        node_allocator  _alloc;
+        node_pointer    _head;
+        node_pointer    _tail;
+        size_type       _size;
 
-        void del(Node<T> *toDel){
+        void del(node_pointer toDel){
             _size--;
             toDel->retirement();
             delete toDel;
         }
+
+        node_pointer new_node(const value_type &val = value_type()){
+            node_pointer node = _alloc.allocate(1);
+            _alloc.construct(node, val);
+            return node;
+        }
+
+        void delete_node(node_pointer node){
+            _alloc.destroy(node);
+            _alloc.deallocate(node, 1);
+        }
     
     public:
-// Canonical Form
-        list() : _head(new Node<T>()), _tail(new Node<T>()), _size(0){
+// Constructor
+        explicit list(const allocator_type &alloc = allocator_type()) : _head(new_node()), _tail(new_node()), _size(0){
             _head->addAfter(_tail);
         }
-        list(const list &other): _head(new Node<T>), _tail(new Node<T>), _size(0){
+        list(const list &other): _head(new_node()), _tail(new_node()), _alloc(other._alloc), _size(0){
             _head->addAfter(_tail);
             *this = other;
         }
-        list& operator=(const list &other){
-            if (this != &other)
-                assign(other.begin(), other.end());
-            return (*this);
-        }
-        ~list(){
-            if (_size != 0)
-                clear();
-            delete _head;
-            delete _tail;
-        }
-
-// Other constructor
         template <class InputIterator>
-        list(InputIterator first, InputIterator last,
+        list(InputIterator first, InputIterator last, const allocator_type &alloc = allocator_type(), 
             typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
             : _head(new Node<T>), _tail(new Node<T>), _size(0)
         {
@@ -66,10 +72,29 @@ class list
             assign(first, last);
         }
 
-        list(size_t n, const T& val = T()) : _head(new Node<T>), _tail(new Node<T>), _size(0){
+        explicit list(size_t n, const value_type& val = value_type(), const allocator_type &alloc = allocator_type()) 
+            : _head(new_node()), _tail(new_node()), _alloc(alloc), _size(0)
+        {
             _head->addAfter(_tail);
             assign(n, val);
+        }        
+        
+
+        list& operator=(const list &other){
+            if (this != &other)
+                assign(other.begin(), other.end());
+            return (*this);
         }
+
+// Destructor
+        ~list(){
+            for (node_pointer tmp; _head; _head = tmp){
+                tmp = _head->next();
+                delete_node(_head);
+            }
+        }
+
+
 
 // Member function
 // Iterators
@@ -100,7 +125,7 @@ class list
             return --position;
         }
 
-        void insert(iterator position, size_t n, const T& val){
+        void insert(iterator position, size_type n, const T& val){
             _size += n;
             while(n--)
                 position.getNode()->addBefore(new Node<T>(val));
@@ -116,9 +141,9 @@ class list
             }
         }
         
-        void assign(size_t n, const T& val){
+        void assign(size_type n, const T& val){
             clear();
-            for (size_t i = 0; i < n; ++i)
+            for (size_type i = 0; i < n; ++i)
                 push_back(val);
         }
 
@@ -219,11 +244,11 @@ class list
 
         void reverse (void){
             iterator pos = begin();
-            for (size_t i = 0; i < _size - 1; ++i)
+            for (size_type i = 0; i < _size - 1; ++i)
                 splice(pos, *this, --end());            
         }
 
-        void resize(size_t n, T val = T()){
+        void resize(size_type n, T val = T()){
             while (n > _size)
                     push_back(val);
             while (n < _size)
@@ -279,9 +304,9 @@ class list
         }
 
 // Informations
-        size_t size() const { return _size; }
-	    size_t max_size() const {
-		    return (min((size_type) std::numeric_limits<difference_type>::max(), (std::numeric_limits<size_t>::max() / (sizeof(Node<T>) - sizeof(T*)))));
+        size_type size() const { return _size; }
+	    size_type max_size() const {
+		    return (min((size_type) std::numeric_limits<difference_type>::max(), (std::numeric_limits<size_type>::max() / (sizeof(Node<T>) - sizeof(T*)))));
 	    }
         bool empty(){ return (_size == 0);}
         T& front() { return(_head->next()->content()); }
@@ -303,14 +328,14 @@ bool operator==(const list<value_type> &lhs, const list<value_type> &rhs){
     }
     return true;
 }
-template<typename value_type>
-bool operator!=(const list<value_type> &lhs, const list<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator!=(const list<value_type, Alloc> &lhs, const list<value_type, Alloc> &rhs){
     return !(lhs == rhs);        
 }
-template<typename value_type>
-bool operator<(const list<value_type> &lhs, const list<value_type> &rhs){
-    typename ft::list<value_type>::const_iterator rit = rhs.begin();
-    for (typename ft::list<value_type>::const_iterator lit = lhs.begin(); rit != rhs.end() && lit != lhs.end(); ++lit){
+template<typename value_type, class Alloc>
+bool operator<(const list<value_type, Alloc> &lhs, const list<value_type, Alloc> &rhs){
+    typename ft::list<value_type, Alloc>::const_iterator rit = rhs.begin();
+    for (typename ft::list<value_type, Alloc>::const_iterator lit = lhs.begin(); rit != rhs.end() && lit != lhs.end(); ++lit){
         if (*lit < *rit)
             return true;
         if (*lit > *rit)
@@ -319,21 +344,21 @@ bool operator<(const list<value_type> &lhs, const list<value_type> &rhs){
     }   
     return (lhs.size() >= rhs.size() ? false : true);
 }
-template<typename value_type>
-bool operator>(const list<value_type> &lhs, const list<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator>(const list<value_type, Alloc> &lhs, const list<value_type, Alloc> &rhs){
     return rhs < lhs;
 }
-template<typename value_type>
-bool operator<=(const list<value_type> &lhs, const list<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator<=(const list<value_type, Alloc> &lhs, const list<value_type, Alloc> &rhs){
     return !(rhs < lhs);
 }
-template<typename value_type>
-bool operator>=(const list<value_type> &lhs, const list<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator>=(const list<value_type, Alloc> &lhs, const list<value_type, Alloc> &rhs){
     return !(lhs < rhs);
 }
 
-template<typename value_type>
-void swap(ft::list<value_type> &lhs, ft::list<value_type> &rhs){
+template<typename value_type, class Alloc>
+void swap(ft::list<value_type, Alloc> &lhs, ft::list<value_type, Alloc> &rhs){
 	lhs.swap(rhs);
 }
 

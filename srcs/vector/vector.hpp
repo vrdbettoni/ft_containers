@@ -9,52 +9,68 @@
 # include <cstring>
 # include <iostream>
 # include <ostream>
+# include <memory>
 
 namespace ft{
-template <typename T>
+template <typename T, class Alloc = std::allocator<T> >
 class vector
 {
     public:
         typedef std::ptrdiff_t difference_type;
 	    typedef size_t size_type;
-	    typedef T value_type;
-	    typedef T* pointer;
-	    typedef T const * const_pointer;
-	    typedef T& reference;
-	    typedef T const & const_reference;
+        typedef Alloc allocator_type;
+        typedef T value_type;
+        typedef typename allocator_type::reference reference;
+        typedef typename allocator_type::const_reference const_reference;
+        typedef typename allocator_type::pointer pointer;
+        typedef typename allocator_type::const_pointer const_pointer;
 	    typedef VectorIterator<value_type, false> iterator;
 	    typedef VectorIterator<value_type, true> const_iterator;
 	    typedef ReverseVectorIterator<value_type, false> reverse_iterator;
 	    typedef ReverseVectorIterator<value_type, true> const_reverse_iterator;
 
     private:
-        pointer     _data;
-        size_type   _size;
-        size_type   _capacity;
+        typedef vector<value_type, allocator_type> self_type;
+    
+    private:
+        allocator_type  _alloc;
+        pointer         _data;
+        size_type       _size;
+        size_type       _capacity;
 
     public:
-        explicit vector() : _data(NULL), _size(0), _capacity(0) {}
+        explicit vector(const allocator_type &alloc = allocator_type()) 
+            : _data(NULL), _size(0), _capacity(0), _alloc(alloc) {}
         
-        explicit vector(size_type n, const value_type &val = value_type()) : _data(NULL), _size(0), _capacity(0){
+        explicit vector(size_type n, const value_type &val = value_type(), const allocator_type &alloc = allocator_type()) 
+            : _data(NULL), _size(0), _capacity(0), _alloc(alloc)
+        {
            reserve(n);
-            for (; _size < n; ++_size)
-                _data[_size] = val;
+           push_n_back(n, val);
         }
     
         template <class InputIterator>
-        vector(InputIterator first, InputIterator last,
+        vector(InputIterator first, InputIterator last, const allocator_type &alloc = allocator_type(), 
             typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
-                : _size(0), _capacity(0), _data(0) {
+                : _size(0), _capacity(0), _data(0), _alloc(alloc) 
+        {
             assign(first, last);
         }
 
-        vector(vector const &other) : _data(NULL), _size(0), _capacity(0){
+        vector(vector const &other) : _data(NULL), _size(0), _capacity(0), _alloc(other._alloc)
+        {
             assign(other.begin(), other.end());
-         }
+        }
+
+        vector& operator=(const vector &other){
+            if (this != &other)
+                assign(other.begin(), other.end());
+            return (*this);
+        }
 
         ~vector(){
             clear();
-            delete[] _data;
+            _alloc.deallocate(_data, _capacity);
         }
 
 // Iterators
@@ -85,22 +101,16 @@ class vector
         }
 
         void resize(size_type n, value_type val = value_type()){
-            for (; _size > n; --_size)
-                _data[_size - 1].T::~T();
-            while (_size < n)
-                push_back(val);
+            if (n > _size)
+                push_n_back(n - _size, val);
+            else
+                while (n < _size)
+                    pop_back();
         }
 
         void reserve(size_type n){
-            n == 0 ? n++ : 0;
-            if (n <= _capacity)
-                return ;
-            pointer newData = new value_type [n];
-            for (size_t i = 0; i <  _size; ++i)
-                newData[i] = _data[i];
-            _capacity = n;
-            delete[] _data;
-            _data = newData;
+            if (n > _capacity)
+                realloc(n);
         }
 
 // Element Access
@@ -156,14 +166,14 @@ class vector
         }
 
         void push_back(const value_type &val){
-            if (_size == _capacity)
-                reserve(_capacity == 0 ? 1 : std::ceil(_capacity * 1.5f));
-            _data[_size] = val;
-            ++_size;
+            push_n_back(1, val);
         }
 
         void pop_back(){
-            _data[_size-- - 1].T::~T();
+            if (_size > 0){
+                _alloc.destroy(_data + _size - 1);
+                --_size;
+            }
         }
 
         iterator insert(iterator position, const value_type &val){
@@ -174,36 +184,23 @@ class vector
 
         void insert (iterator position, size_type n, const value_type &val){
             vector<value_type> tmp(position, this->end());
-            difference_type p = position - begin();
-            reserve(_size + n);
-            iterator pos = begin() + p;
-            for(size_t count = 0; count < n; ++count, ++pos){
-                pos.getActual()->T::~T();
-                *pos = val;
-            }
-            for (size_t count = 0; count < tmp._size; ++pos){
-                pos.getActual()->T::~T();
-                *pos =  tmp._data[count++];
-            }
-            _size += n;
+            erase(position, end());
+            reserve(_size + n + tmp._size);
+            push_n_back(n, val);
+            for (iterator it = tmp.begin(); it != tmp.end(); ++it)
+                push_back(*it);
         }
 
         template <class InputIterator>
         void insert (iterator position, InputIterator first, InputIterator last, 
                     typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0){
             vector<value_type> tmp(position, this->end());
-            difference_type p = position - begin();
-            reserve(_size + last - first);
-            iterator pos = begin() + p;
-            for(; first != last; ++first, ++pos){
-                pos.getActual()->T::~T();
-                *pos = *first;
-                ++_size;
-            }
-            for (size_t count = 0; count < tmp._size; ++pos){
-                pos.getActual()->T::~T();
-                *pos =  tmp._data[count++];
-            }
+            erase(position, end());
+            reserve(_size + std::distance(first, last) + tmp._size);
+            for (; first != last; ++first)
+                push_back(*first);
+            for (iterator it = tmp.begin(); it != tmp.end(); ++it)
+                push_back(*it);
         }  
 
         iterator erase(iterator position){
@@ -228,8 +225,30 @@ class vector
 
         void clear(){
             for (size_t i = 0;  i < _size; ++i)
-                _data[i].T::~T();
+                _alloc.destroy(_data + i);
             _size = 0;
+        }
+
+    private:
+        void push_n_back(size_type n, const value_type &val = value_type()){
+            reserve(_size + n);
+            for (size_type i = 0; i < n; i++)
+                _alloc.construct(_data + _size + i, val);
+            _size += n;
+        }
+
+        void realloc(size_type new_size){
+            size_type new_capacity = _capacity == 0 ? 1 : _capacity;
+            while (new_capacity < new_size)
+                new_capacity = std::ceil(new_capacity * 1.5f);
+            value_type *new_array = _alloc.allocate(new_capacity);
+            for (size_type i = 0; i < _size; i++){
+                _alloc.construct(new_array + i, _data[i]);
+                _alloc.destroy(_data + i);
+            }
+            _alloc.deallocate(_data, _capacity);
+            _data = new_array;
+            _capacity = new_capacity;
         }
 
 };
@@ -247,12 +266,12 @@ bool operator==(const vector<value_type> &lhs, const vector<value_type> &rhs){
     }
     return true;
 }
-template<typename value_type>
-bool operator!=(const vector<value_type> &lhs, const vector<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator!=(const vector<value_type, Alloc> &lhs, const vector<value_type, Alloc> &rhs){
     return !(lhs == rhs);        
 }
-template<typename value_type>
-bool operator<(const vector<value_type> &lhs, const vector<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator<(const vector<value_type, Alloc> &lhs, const vector<value_type, Alloc> &rhs){
     typename ft::vector<value_type>::const_iterator rit = rhs.begin();
     for (typename ft::vector<value_type>::const_iterator lit = lhs.begin(); rit != rhs.end() && lit != lhs.end(); ++lit, ++rit){
         if (*lit < *rit)
@@ -262,21 +281,21 @@ bool operator<(const vector<value_type> &lhs, const vector<value_type> &rhs){
     }   
     return (lhs.size() >= rhs.size() ? false : true);
 }
-template<typename value_type>
-bool operator>(const vector<value_type> &lhs, const vector<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator>(const vector<value_type, Alloc> &lhs, const vector<value_type, Alloc> &rhs){
     return rhs < lhs;
 }
-template<typename value_type>
-bool operator<=(const vector<value_type> &lhs, const vector<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator<=(const vector<value_type, Alloc> &lhs, const vector<value_type, Alloc> &rhs){
     return !(rhs < lhs);
 }
-template<typename value_type>
-bool operator>=(const vector<value_type> &lhs, const vector<value_type> &rhs){
+template<typename value_type, class Alloc>
+bool operator>=(const vector<value_type, Alloc> &lhs, const vector<value_type, Alloc> &rhs){
     return !(lhs < rhs);
 }
 
-template<typename value_type>
-void swap(ft::vector<value_type> &lhs, ft::vector<value_type> &rhs){
+template<typename value_type, class Alloc>
+void swap(ft::vector<value_type, Alloc> &lhs, ft::vector<value_type, Alloc> &rhs){
 	lhs.swap(rhs);
 }
 

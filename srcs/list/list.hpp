@@ -56,7 +56,7 @@ class list
 
     public:
 // Constructor
-        explicit list(const allocator_type &alloc = allocator_type()) : _head(new_node()), _tail(new_node()), _size(0){
+        explicit list(const allocator_type &alloc = allocator_type()) : _head(new_node()), _tail(new_node()), _size(0), _alloc(alloc){
             _head->addAfter(_tail);
         }
         list(const list &other): _head(new_node()), _tail(new_node()), _size(0), _alloc(other._alloc) {
@@ -66,14 +66,14 @@ class list
         template <class InputIterator>
         list(InputIterator first, InputIterator last, const allocator_type &alloc = allocator_type(),
             typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
-            : _head(new Node<T>), _tail(new Node<T>), _size(0)
+            : _head(new Node<T>), _tail(new Node<T>), _size(0), _alloc(alloc)
         {
             _head->addAfter(_tail);
             assign(first, last);
         }
 
         explicit list(size_t n, const value_type& val = value_type(), const allocator_type &alloc = allocator_type())
-            : _head(new_node()), _tail(new_node()), _alloc(alloc), _size(0)
+            : _head(new_node()), _tail(new_node()), _size(0), _alloc(alloc)
         {
             _head->addAfter(_tail);
             assign(n, val);

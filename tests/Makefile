@@ -4,15 +4,11 @@ NAME	=	test
 
 MAIN_SRC =	srcs/main.cpp
 
-TEST_SRC = srcs/vector.cpp\
-			srcs/list.cpp
+# TEST_SRC = srcs/vector.cpp\
+# 			srcs/list.cpp
 
-# TEST_SRC =	srcs/map.cpp\
-			srcs/list.cpp\
-			srcs/deque.cpp\
+TEST_SRC =	srcs/list.cpp\
 			srcs/vector.cpp\
-			srcs/set.cpp\
-			srcs/multi.cpp\
 			srcs/stack_queue.cpp
 
 CC		=	clang++

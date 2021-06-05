@@ -26,16 +26,16 @@ class list
         typedef ReverseListIterator<T, false> reverse_iterator;
         typedef ReverseListIterator<T, true> const_reverse_iterator;
         typedef size_t size_type;
-    
+
     private:
         typedef Node<T>* node_pointer;
         typedef typename Alloc::template rebind<Node<T> >::other node_allocator;
-    
+
     private:
-        node_allocator  _alloc;
         node_pointer    _head;
         node_pointer    _tail;
         size_type       _size;
+        node_allocator  _alloc;
 
         void del(node_pointer toDel){
             _size--;
@@ -53,18 +53,18 @@ class list
             _alloc.destroy(node);
             _alloc.deallocate(node, 1);
         }
-    
+
     public:
 // Constructor
         explicit list(const allocator_type &alloc = allocator_type()) : _head(new_node()), _tail(new_node()), _size(0){
             _head->addAfter(_tail);
         }
-        list(const list &other): _head(new_node()), _tail(new_node()), _alloc(other._alloc), _size(0){
+        list(const list &other): _head(new_node()), _tail(new_node()), _size(0), _alloc(other._alloc) {
             _head->addAfter(_tail);
             *this = other;
         }
         template <class InputIterator>
-        list(InputIterator first, InputIterator last, const allocator_type &alloc = allocator_type(), 
+        list(InputIterator first, InputIterator last, const allocator_type &alloc = allocator_type(),
             typename enable_if< !std::numeric_limits<InputIterator>::is_integer , void >::type* = 0)
             : _head(new Node<T>), _tail(new Node<T>), _size(0)
         {
@@ -72,13 +72,13 @@ class list
             assign(first, last);
         }
 
-        explicit list(size_t n, const value_type& val = value_type(), const allocator_type &alloc = allocator_type()) 
+        explicit list(size_t n, const value_type& val = value_type(), const allocator_type &alloc = allocator_type())
             : _head(new_node()), _tail(new_node()), _alloc(alloc), _size(0)
         {
             _head->addAfter(_tail);
             assign(n, val);
-        }        
-        
+        }
+
 
         list& operator=(const list &other){
             if (this != &other)
@@ -106,7 +106,7 @@ class list
         reverse_iterator rend () { return reverse_iterator (_head); }
         const_reverse_iterator rbegin() const { return const_reverse_iterator(_tail->previous()); }
         const_reverse_iterator rend () const { return const_reverse_iterator (_head); }
-    
+
 // Basic Insertion
         void push_back(const T &value){
             _size++;
@@ -140,7 +140,7 @@ class list
                 ++_size;
             }
         }
-        
+
         void assign(size_type n, const T& val){
             clear();
             for (size_type i = 0; i < n; ++i)
@@ -164,7 +164,7 @@ class list
             if (_size > 0)
                 del(_tail->previous());
         }
-    
+
         void clear(){
             erase(begin(), end());
         }
@@ -245,7 +245,7 @@ class list
         void reverse (void){
             iterator pos = begin();
             for (size_type i = 0; i < _size - 1; ++i)
-                splice(pos, *this, --end());            
+                splice(pos, *this, --end());
         }
 
         void resize(size_type n, T val = T()){
@@ -296,7 +296,7 @@ class list
             iterator it = begin();
             std::advance(it, _size / 2);
             right_part.splice(right_part.end(), *this, it, end());
-            left_part.splice(left_part.end(), *this);   
+            left_part.splice(left_part.end(), *this);
             right_part.sort(comp);
             left_part.sort(comp);
             left_part.merge(right_part, comp);
@@ -331,7 +331,7 @@ bool operator==(const list<value_type> &lhs, const list<value_type> &rhs){
 }
 template<typename value_type, class Alloc>
 bool operator!=(const list<value_type, Alloc> &lhs, const list<value_type, Alloc> &rhs){
-    return !(lhs == rhs);        
+    return !(lhs == rhs);
 }
 template<typename value_type, class Alloc>
 bool operator<(const list<value_type, Alloc> &lhs, const list<value_type, Alloc> &rhs){
@@ -342,7 +342,7 @@ bool operator<(const list<value_type, Alloc> &lhs, const list<value_type, Alloc>
         if (*lit > *rit)
         return false;
         ++rit;
-    }   
+    }
     return (lhs.size() >= rhs.size() ? false : true);
 }
 template<typename value_type, class Alloc>

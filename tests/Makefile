@@ -4,7 +4,8 @@ NAME	=	test
 
 MAIN_SRC =	srcs/main.cpp
 
-TEST_SRC = srcs/vector.cpp
+TEST_SRC = srcs/vector.cpp\
+			srcs/list.cpp
 
 # TEST_SRC =	srcs/map.cpp\
 			srcs/list.cpp\

@@ -243,6 +243,8 @@ class list
         }
 
         void reverse (void){
+            if (size() < 2)
+                return ;
             iterator pos = begin();
             for (size_type i = 0; i < _size - 1; ++i)
                 splice(pos, *this, --end());
